@@ -6,13 +6,12 @@ import sys
 class WSGIServer(object):
     address_family = socket.AF_INET
     socket_type = socket.SOCK_STREAM
-    request_queue_size = 1    
+    request_queue_size = 1
 
     def __init__(self, server_address) -> None:
         # creates a listening socket
         self.listen_socket = listen_socket = socket.socket(
-            self.address_family,
-            self.socket_type    
+            self.address_family, self.socket_type
         )
 
         # allows to reuse the same address
@@ -31,26 +30,24 @@ class WSGIServer(object):
 
         # returns headers set by web framework/app
         self.headers_set = []
-    
+
     def set_app(self, application):
         self.application = application
 
     def serve_forever(self):
         listen_socket = self.listen_socket
-        
+
         while True:
             # new client connection
             self.client_connection, client_address = listen_socket.accept()
-            
+
             self.handle_one_request()
 
     def handle_one_request(self):
         request_data = self.client_connection.recv(1024)
         self.request_data = request_data = request_data.decode("utf-8")
-        
-        print("".join(
-            f"< {line}\n" for line in request_data.splitlines()
-        ))
+
+        print("".join(f"< {line}\n" for line in request_data.splitlines()))
 
         self.parse_request(request_data)
         env = self.get_environ()
@@ -62,12 +59,8 @@ class WSGIServer(object):
     def parse_request(self, text):
         request_line = text.splitlines()[0]
         request_line = request_line.rstrip("\r\n")
-        (
-            self.request_method,
-            self.path,
-            self.request_version
-        ) = request_line.split()
-    
+        (self.request_method, self.path, self.request_version) = request_line.split()
+
     def get_environ(self):
         env = {
             "wsgi.version": (1, 0),
@@ -77,27 +70,23 @@ class WSGIServer(object):
             "wsgi.multithread": False,
             "wsgi.multiprocess": False,
             "wsgi.run_once": False,
-
             "REQUEST_METHOD": self.request_method,
             "PATH_INFO": self.path,
             "SERVER_NAME": self.server_name,
-            "SERVER_PORT": str(self.server_port)
+            "SERVER_PORT": str(self.server_port),
         }
 
         return env
 
     def start_response(self, status, response_headers, exc_info=None):
-        server_headers = [
-            ("Date", "Mon, 6 Nov 2023"),
-            ("Server", "WSGIServer 0.2")
-        ]
-        
+        server_headers = [("Date", "Mon, 6 Nov 2023"), ("Server", "WSGIServer 0.2")]
+
         self.headers_set = [status, response_headers + server_headers]
-    
+
     def finish_response(self, result):
         try:
             status, response_headers = self.headers_set
-            response  = f"HTTP/1.1 {status}\r\n"
+            response = f"HTTP/1.1 {status}\r\n"
 
             for header in response_headers:
                 response += "{0}: {1}\r\n".format(*header)
@@ -107,9 +96,7 @@ class WSGIServer(object):
             for data in result:
                 response += data.decode("utf-8")
 
-            print("".join(
-                f"> {line}\n" for line in response.splitlines()
-            ))
+            print("".join(f"> {line}\n" for line in response.splitlines()))
 
             response_bytes = response.encode()
 
@@ -118,8 +105,8 @@ class WSGIServer(object):
             self.client_connection.close()
 
 
-
 SERVER_ADDRESS = (HOST, PORT) = "", 8888
+
 
 def make_server(server_address, application):
     server = WSGIServer(server_address)
@@ -128,12 +115,11 @@ def make_server(server_address, application):
 
 
 if __name__ == "__main__":
-    # if len(sys.argv) < 2:
-        # sys.exit("Provide a WSGI application object as module:callable")
-    
-    # app_path = sys.argv[1]
-    module, application = "pyramid_app", "app"
-    print(module, application)
+    if len(sys.argv) < 2:
+        sys.exit("Provide a WSGI application object as module:callable")
+
+    app_path = sys.argv[1]
+    module, application = app_path.split(":")
     module = __import__(module)
     application = getattr(module, application)
     httpd = make_server(SERVER_ADDRESS, application)

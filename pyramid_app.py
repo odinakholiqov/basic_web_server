@@ -1,13 +1,15 @@
 from pyramid.config import Configurator
 from pyramid.response import Response
 
+
 def root(request):
-    return Response("""
+    return Response(
+        """
                     <body><h1>
                         Hello, World!
                     </h1></body>
-                    """)
-
+                    """
+    )
 
 
 config = Configurator()
